@@ -7,6 +7,9 @@ BUILD_DIR=${1:-.}
 HEROKU_DIR=$BUILD_DIR/.heroku
 BIN_DIR=$HEROKU_DIR/bin
 
+IMPORTS_URL="https://denopkg.com/crewdevio/Trex@dev-imports/cli.ts"
+ROOT_PATH="$HOME/.heroku"
+
 cd $BUILD_DIR
 
 if [ -f runtime.txt ]
@@ -24,6 +27,8 @@ PROFILE_PATH="$BUILD_DIR/.profile.d/deno.sh"
 mkdir -p $(dirname $PROFILE_PATH)
 echo 'export PATH="$HOME/.heroku/bin:$PATH"' >> $PROFILE_PATH
 echo 'export DENO_DIR="$HOME/.heroku/cache"' >> $PROFILE_PATH
+# install imports
+echo "$(deno install -f -A --unstable -n imports --root $ROOT_PATH $IMPORTS_URL)"
 
 # download dependencies
 if [ -f Procfile ]
