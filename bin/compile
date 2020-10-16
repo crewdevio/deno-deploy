@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+set -e
+
+BUILD_DIR=${1:-.}
+HEROKU_DIR=$BUILD_DIR/.heroku
+BIN_DIR=$HEROKU_DIR/bin
+
+cd $BUILD_DIR
+
+if [ -f runtime.txt ]
+then
+  INSTALL_VERSION_OPTION="-s $(cat runtime.txt)"
+fi
+echo $INSTALL_VERSION_OPTION
+
+# install deno
+export DENO_INSTALL=$BUILD_DIR/.heroku
+curl -fsSL https://deno.land/x/install/install.sh | sh $INSTALL_VERSION_OPTION
+
+# set environment variables
+PROFILE_PATH="$BUILD_DIR/.profile.d/deno.sh"
+mkdir -p $(dirname $PROFILE_PATH)
+echo 'export PATH="$HOME/.heroku/bin:$PATH"' >> $PROFILE_PATH
+echo 'export DENO_DIR="$HOME/.heroku/cache"' >> $PROFILE_PATH
+
+# download dependencies
+if [ -f Procfile ]
+then
+  SCRIPT_DIR=$(cd $(dirname $0); pwd)
+  source $SCRIPT_DIR/get_cache_command.sh
+  COMMAND=$(cat Procfile | grep -E '^(web|worker):')
+  if [ -n "$COMMAND" ]
+  then
+    CACHE_COMMAND=$(get_cache_command "$COMMAND")
+    if [ -n "$CACHE_COMMAND" ]
+    then
+      export DENO_DIR=$BUILD_DIR/.heroku/cache
+      set +e
+      $BIN_DIR/$CACHE_COMMAND
+      set -e
+    fi
+  fi
+fi
